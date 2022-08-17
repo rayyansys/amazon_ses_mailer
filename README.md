@@ -1,7 +1,8 @@
 # AmazonSesMailer
 
-This ruby gem allows you to use Amazon SESv2 API to send emails from your Rails application.
-Email templates are hosted on Amazon SES service rather than the Rails application.
+This ruby gem allows you to use Amazon SESv2 API to send emails from your Rails (or just Ruby)
+applications.
+Email templates are hosted on Amazon SES service rather than the application.
 This enables rapid development of templates, which can then be managed
 by marketing teams, rather than engineering teams. The gem API is very similar to
 the Rails ActionMailer API to allow for easy integration/migration.
@@ -20,19 +21,43 @@ And then execute:
 
 Note that this is still work in progress, that's why it is not released yet
 on rubygems.org.
-## Usage
+## Configuration
 
 AWS credentials are automatically read by the underlying `aws-sdk-core` gem.
-For more information, see the [aws-sdk-core documentation](https://github.com/aws/aws-sdk-ruby#configuration).
+For more information, see the [aws-sdk-core documentation](https://github.com/aws/aws-sdk-ruby#configuration). Here is an example AWS IAM policy for the configured crednetials:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "VisualEditor1",
+      "Effect": "Allow",
+      "Action": [
+        "ses:SendTemplatedEmail"
+      ],
+      "Resource": [
+        "arn:aws:ses:<region>:<account_number>:template/*",
+        "arn:aws:ses:<region>:<account_number>:identity/<identity_name>",
+        "arn:aws:ses:<region>:<account_number>:configuration-set/<configuration_set_name1>",
+        "arn:aws:ses:<region>:<account_number>:configuration-set/<configuration_set_name2>",
+        "arn:aws:ses:<region>:<account_number>:contact-list/<contact_list_name>",
+      ]
+    }
+  ]
+}
+```
+
+## Usage
 
 As you would do with a regular `ActionMailer` subclass, you create a new mailer class,
 but instead of inheriting from `ActionMailer::Base`, you would inherit from `AmazonSesMailer::Base`.
 
 ```ruby
 class MyMailer < AmazonSesMailer::Base
-    def welcome_email(email)
-        mail(to: email, from_email: 'hello@example.org', from_name: 'Sender Name')
-    end
+  def welcome_email(email)
+    mail(to: email, from_email: 'hello@example.org', from_name: 'Sender Name')
+  end
 end
 ```
 
@@ -43,33 +68,35 @@ If you want to merge dynamic content with the template, you can use the `merge_v
 
 ```ruby
 class MyMailer < AmazonSesMailer::Base
-    def welcome_email(user)
-        mail(to: user.email,
-             from_email: 'hello@example.org', from_name: 'Sender Name',
-             merge_vars: {
-                name: user.name,
-                company: user.company
-             })
-    end
+  def welcome_email(user)
+    mail(to: user.email,
+         from_email: 'hello@example.org', from_name: 'Sender Name',
+         merge_vars: {
+           name: user.name,
+           company: user.company
+         }
+        )
+  end
 end
 ```
 
 Those variables will be merged with the template using the `{{Handlebars}}` syntax.
-For more information about the syntax, see the [SES documentation](https://docs.aws.amazon.com/ses/latest/dg/send-personalized-email-advanced.html).
+For more information about the syntax, see the [SES documentation](https://docs.aws.amazon.com/ses/latest/dg/send-personalized-email-advanced.html). Note that you should supply values for all the merge variables in the template, even if they are empty strings. Otherwise, Amazon SES will reject the email.
+If the template has an unsubscribe link placeholder, you must supply the contact list name in the parameters.
 
 If you have multiple methods in the same mailer class, you may find it convenient to use the `default` DSL:
 
 ```ruby
 class MyMailer < AmazonSesMailer::Base
-    default from_email: 'hello@example.com', from_name: 'Sender Name'
+  default from_email: 'hello@example.com', from_name: 'Sender Name'
 
-    def welcome_email(user)
-        mail(to: user.email)
-    end
+  def welcome_email(user)
+    mail(to: user.email)
+  end
 
-    def confirmation_email(user)
-        mail(to: user.email)
-    end
+  def confirmation_email(user)
+    mail(to: user.email)
+  end
 end
 ```
 
