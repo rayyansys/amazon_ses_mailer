@@ -30,7 +30,7 @@ module AmazonSesMailer
         content: {
           template: {
             template_name: options[:template],
-            template_data: process_merge_vars(options[:merge_vars])
+            template_data: options[:merge_vars]
           },
         },
         configuration_set_name: options[:configuration_set_name],
@@ -55,12 +55,6 @@ module AmazonSesMailer
           topic_name: options[:topic_name] # nil is allowed
         }
       end
-    end
-
-    def process_merge_vars(merge_vars)
-      # removes nil and false values, and ensures that all values are strings
-      return '{}' unless merge_vars
-      merge_vars.keep_if{|k, v| !!v}.transform_values{|v| v.to_s}.to_json
     end
   end
 end

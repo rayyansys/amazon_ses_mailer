@@ -26,7 +26,25 @@ module AmazonSesMailer
 
     def mail(options)
       options = default_options.merge(options)
+      options[:merge_vars] = process_merge_vars(options[:merge_vars])
       Message.new(options)
+    end
+
+    private
+
+    def process_merge_vars(merge_vars)
+      # if no merge_vars specified, extract from instance variables
+      merge_vars = convert_instance_variables_to_merge_vars unless merge_vars
+      # removes nil and false values, and ensures that all values are strings
+      merge_vars.keep_if{|k, v| !!v}.transform_values{|v| v.to_s}.to_json
+    end
+
+    def convert_instance_variables_to_merge_vars
+      self.instance_variable_names.reduce({}) do |result, variable_name|
+        key = variable_name.delete "@"
+        value = self.instance_variable_get(variable_name)
+        result.merge!(key => value)
+      end
     end
   end
 end

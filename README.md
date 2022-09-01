@@ -64,7 +64,26 @@ end
 This looks for a template on SES in the configured AWS region named `welcome_email`.
 If found, it will be used to render the email and send it to the specified recipient.
 
-If you want to merge dynamic content with the template, you can use the `merge_vars` parameter.
+If you want to merge dynamic content with the template, just set instance variables
+as you would do with `ActionMailer`. Those variables will be converted to template
+variables after stripping out the `@` character.
+
+```ruby
+class MyMailer < AmazonSesMailer::Base
+  def welcome_email(user)
+    @name = user.name
+    @company = user.company
+
+    mail(to: user.email,
+         from_email: 'hello@example.org', from_name: 'Sender Name'
+        )
+  end
+end
+```
+
+Alternatively, you can use the `merge_vars` parameter. Note that if this parameter
+is specified, no instance variables will be converted. The below snippet is equivalent
+to the previous one.
 
 ```ruby
 class MyMailer < AmazonSesMailer::Base
@@ -108,7 +127,8 @@ method or the `default` DSL:
 - `to`: A string or an array of strings representing the email addresses of the recipients appearing in the `To:` field.
 - `reply_to`: A string or an array of strings representing the email addresses of the recipients appearing in the `Reply-To:` field. Defaults to `nil`.
 - `template`: Template name to use for rendering the email. Defaults to the name of the mailer class method invoking the `mail` method.
-- `merge_vars`: Hash of variables to merge with the template. All keys with `nil` or `false` values will be removed. This is handy when using variables inside `{{#if condition}}` blocks in the template.
+- `merge_vars`: Hash of variables to merge with the template. All keys with `nil` or `false` values will be removed. This is handy when using variables inside `{{#if condition}}` blocks in the template. If this
+parameter is omitted, all truthy instance variables will be converted to merge variables.
 - `configuration_set_name`: The SES configuration set to use for sending the email. If not specified, the default SES configuration set will be used (defined in the AWS console).
 - `contact_list_name`: The contact list to use for sending the email. Required if the template contains an unsubscribe link placeholder.
 - `topic_name`: The topic name to use for sending the email to the above contact list. If ommitted, the unsubscribe link will unsubscribe from all topics when used as an email header.
