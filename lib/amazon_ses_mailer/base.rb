@@ -21,7 +21,8 @@ module AmazonSesMailer
     end
 
     def self.method_missing(method_name, *args, &block)
-      new(method_name).send(method_name, *args, &block)
+      template_name = [self.name, method_name].join('-')
+      new(template_name).send(method_name, *args, &block)
     end
 
     def mail(options)

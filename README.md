@@ -1,11 +1,12 @@
 # AmazonSesMailer
 
-This ruby gem allows you to use Amazon SESv2 API to send emails from your Rails (or just Ruby)
-applications.
-Email templates are hosted on Amazon SES service rather than the application.
+This ruby gem allows you to use [Amazon SES](https://aws.amazon.com/ses/) API v2
+to send emails from your Rails (or just Ruby) applications.
+Email templates are hosted on Amazon Simple Email Service (SES) rather than the application.
 This enables rapid development of templates, which can then be managed
-by marketing teams, rather than engineering teams. The gem API is very similar to
-the Rails ActionMailer API to allow for easy integration/migration.
+by marketing teams, rather than engineering teams. The gem API is almost identical to
+the [Rails ActionMailer](https://guides.rubyonrails.org/action_mailer_basics.html)
+API to allow for easy integration/migration.
 
 ## Installation
 
@@ -61,7 +62,7 @@ class MyMailer < AmazonSesMailer::Base
 end
 ```
 
-This looks for a template on SES in the configured AWS region named `welcome_email`.
+This looks for a template on SES in the configured AWS region named `MyMailer-welcome_email`.
 If found, it will be used to render the email and send it to the specified recipient.
 
 If you want to merge dynamic content with the template, just set instance variables
