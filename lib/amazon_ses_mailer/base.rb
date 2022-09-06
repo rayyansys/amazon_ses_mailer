@@ -36,8 +36,8 @@ module AmazonSesMailer
     def process_merge_vars(merge_vars)
       # if no merge_vars specified, extract from instance variables
       merge_vars = convert_instance_variables_to_merge_vars unless merge_vars
-      # removes nil and false values, and ensures that all values are strings
-      merge_vars.keep_if{|k, v| !!v}.transform_values{|v| v.to_s}.to_json
+      # converts nil/false values to empty strings, and converts all others to strings
+      merge_vars.transform_values{|v| !!v ? v.to_s : ''}.to_json
     end
 
     def convert_instance_variables_to_merge_vars
