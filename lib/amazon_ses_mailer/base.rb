@@ -4,6 +4,11 @@ module AmazonSesMailer
 
     class << self
       attr_accessor :default_options
+      
+      def deliveries
+        @@_deliveries ||= []
+      end
+
       protected
       # DSL method for setting defaults
       def default(*args, &block)
@@ -28,7 +33,7 @@ module AmazonSesMailer
     def mail(options)
       options = default_options.merge(options)
       options[:merge_vars] = process_merge_vars(options[:merge_vars])
-      Message.new(options)
+      Message.new(options, Proc.new { |result| self.class.deliveries << result })
     end
 
     private

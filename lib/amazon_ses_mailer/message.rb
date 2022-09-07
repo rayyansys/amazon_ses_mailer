@@ -10,12 +10,15 @@ module AmazonSesMailer
       self.class.ses_client ||= ::Aws::SESV2::Client.new
     end
 
-    def initialize(options)
+    def initialize(options, delivery_proc)
       @message = build_message(options)
+      @delivery_proc = delivery_proc
     end
 
     def deliver
-      ses_client.send_email(@message)
+      result = ses_client.send_email(@message)
+      @delivery_proc.call(result) if @delivery_proc
+      result
     end
 
     private

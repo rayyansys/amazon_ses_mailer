@@ -146,6 +146,29 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
+## Testing
+
+When writing tests, you should mock the SES API call. If using rspec:
+
+```ruby
+# spec/spec_helper.rb
+RSpec.configure do |config|
+  config.before(:each) do |e|
+    allow_any_instance_of(::Aws::SESV2::Client).to receive(:send_email).and_return({message_id: '123'})
+  end
+end
+```
+
+If you want to verify deliveries, you do the same you would do with `ActionMailer`,
+except replacing `ActionMailer::Base` with `AmazonSesMailer::Base`:
+
+```ruby
+describe ".welcome_email" do
+  it { expect{ MyMailer.welcome_email(user).deliver }
+            .to change{ AmazonSesMailer::Base.deliveries.count }.by(1) }
+end
+```
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/rayyansys/amazon_ses_mailer.
