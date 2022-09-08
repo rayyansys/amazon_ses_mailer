@@ -17,7 +17,7 @@ module AmazonSesMailer
 
     def deliver
       result = ses_client.send_email(@message)
-      @delivery_proc.call(result) if @delivery_proc
+      @delivery_proc.call(@message.merge(result)) if @delivery_proc
       result
     end
 

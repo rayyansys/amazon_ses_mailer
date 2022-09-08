@@ -33,7 +33,9 @@ module AmazonSesMailer
     def mail(options)
       options = default_options.merge(options)
       options[:merge_vars] = process_merge_vars(options[:merge_vars])
-      Message.new(options, Proc.new { |result| self.class.deliveries << result })
+      Message.new(options, Proc.new { |delivery|
+        self.class.deliveries << OpenStruct.new(delivery.merge({template: options[:template]}))
+      })
     end
 
     private

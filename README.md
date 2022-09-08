@@ -169,6 +169,24 @@ describe ".welcome_email" do
 end
 ```
 
+You can also verify the raw API call input and (mocked) output by inspecting
+the `deliveries` array:
+
+```ruby
+describe ".welcome_email" do
+  it {
+    MyMailer.welcome_email(user).deliver
+    delivery = AmazonSesMailer::Base.deliveries.last
+    Rails.logger.debug(delivery) # to print the delivery object
+    expect(delivery.template).to eq("MyMailer-welcome_email") # this is added to the delivery
+    expect(delivery.from_email_address).to eq("Sender Name <hello@example.org>")
+    expect(delivery.message_id).to eq("123") # this is added to the delivery
+    ...
+  }
+end
+```
+
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/rayyansys/amazon_ses_mailer.
