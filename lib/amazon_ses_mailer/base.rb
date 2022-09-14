@@ -43,8 +43,7 @@ module AmazonSesMailer
     def process_merge_vars(merge_vars)
       # if no merge_vars specified, extract from instance variables
       merge_vars = convert_instance_variables_to_merge_vars unless merge_vars
-      # converts nil/false values to empty strings, and converts all others to strings
-      merge_vars.transform_values{|v| !!v ? v.to_s : ''}.to_json
+      transform_hash(merge_vars).to_json
     end
 
     def convert_instance_variables_to_merge_vars
@@ -53,6 +52,22 @@ module AmazonSesMailer
         value = self.instance_variable_get(variable_name)
         result.merge!(key => value)
       end
+    end
+
+    def transform_hash(hash)
+      hash.transform_values{ |value| transform_value(value) }
+    end
+    
+    def transform_array(arr)
+      arr.map{|value| transform_value(value)}
+    end
+    
+    def transform_value(value)
+      # recurse on hashes/arrays, converts nil/false values to empty strings, and converts all others to strings
+      return '' unless !!value
+      return transform_hash(value) if value.is_a?(Hash)
+      return transform_array(value) if value.is_a?(Array)
+      return value.to_s
     end
   end
 end
