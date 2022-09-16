@@ -183,18 +183,16 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Testing
 
-When writing tests, you should mock the SES API call. If using rspec:
+When running tests, you should enable the test mode to skip deliveries
+and accumulate messages in a testable array instead:
 
 ```ruby
-# spec/spec_helper.rb
-RSpec.configure do |config|
-  config.before(:each) do |e|
-    allow_any_instance_of(::Aws::SESV2::Client).to receive(:send_email).and_return({message_id: '123'})
-  end
-end
+AmazonSesMailer::Base.delivery_method = :test
 ```
 
-If you want to verify deliveries, you do the same you would do with `ActionMailer`,
+In a rails application, typically this should go `config/environments/test.rb`.
+
+If you want to verify simulated deliveries, you do the same you would do with `ActionMailer`,
 except replacing `ActionMailer::Base` with `AmazonSesMailer::Base`:
 
 ```ruby
@@ -204,8 +202,7 @@ describe ".welcome_email" do
 end
 ```
 
-You can also verify the raw API call input and (mocked) output by inspecting
-the `deliveries` array:
+You can also verify the raw API call input by inspecting the `deliveries` array:
 
 ```ruby
 describe ".welcome_email" do
@@ -215,7 +212,6 @@ describe ".welcome_email" do
     Rails.logger.debug(delivery) # to print the delivery object
     expect(delivery.template).to eq("MyMailer-welcome_email") # this is added to the delivery
     expect(delivery.from_email_address).to eq("Sender Name <hello@example.org>")
-    expect(delivery.message_id).to eq("123") # this is added to the delivery
     ...
   }
 end

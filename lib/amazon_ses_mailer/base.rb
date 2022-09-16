@@ -3,7 +3,7 @@ module AmazonSesMailer
     attr_reader :template_name
 
     class << self
-      attr_accessor :default_options
+      attr_accessor :default_options, :delivery_method
       
       def deliveries
         @@_deliveries ||= []
@@ -33,9 +33,10 @@ module AmazonSesMailer
     def mail(options)
       options = default_options.merge(options)
       options[:merge_vars] = process_merge_vars(options[:merge_vars])
-      Message.new(options, Proc.new { |delivery|
+      delivery_proc = Proc.new { |delivery|
         self.class.deliveries << OpenStruct.new(delivery.merge({template: options[:template]}))
-      })
+      } if AmazonSesMailer::Base.delivery_method == :test
+      Message.new(options, delivery_proc)
     end
 
     private

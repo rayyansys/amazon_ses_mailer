@@ -12,13 +12,13 @@ module AmazonSesMailer
 
     def initialize(options, delivery_proc)
       @message = build_message(options)
-      @delivery_proc = delivery_proc
+      @delivery_proc = delivery_proc || Proc.new { |message|
+        ses_client.send_email(message)
+      }
     end
 
     def deliver
-      result = ses_client.send_email(@message)
-      @delivery_proc.call(@message.merge(result)) if @delivery_proc
-      result
+      @delivery_proc.call(@message)
     end
 
     private
