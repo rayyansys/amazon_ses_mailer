@@ -9,6 +9,14 @@ module AmazonSesMailer
         @@_deliveries ||= []
       end
 
+      def register_interceptor(interceptor_class)
+        @@__interceptors ||= []
+        unless interceptor_class.respond_to?(:delivering_email)
+          raise "#{interceptor_class} does not respond to :delivering_email"
+        end
+        @@__interceptors << interceptor_class
+      end
+
       protected
       # DSL method for setting defaults
       def default(*args, &block)
@@ -23,6 +31,7 @@ module AmazonSesMailer
 
     def initialize(template_name)
       @template_name = template_name.to_s
+      @@__interceptors ||= []
     end
 
     def self.method_missing(method_name, *args, &block)
@@ -36,7 +45,7 @@ module AmazonSesMailer
       delivery_proc = Proc.new { |delivery|
         self.class.deliveries << OpenStruct.new(delivery.merge({template: options[:template]}))
       } if AmazonSesMailer::Base.delivery_method == :test
-      Message.new(options, delivery_proc)
+      Message.new(options, @@__interceptors, delivery_proc)
     end
 
     private

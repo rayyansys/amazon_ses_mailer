@@ -175,6 +175,43 @@ Note that the email subject is defined in the template itself and does not have
 a separate parameter in the SES API. If you want to use dynamic subjects, you can
 pass a merge variable (e.g. `subject`) and use it in the subject line: `{{subject}}`.
 
+### Interceptors
+
+Similar to ActionMailer, you can register mail interceptors to block email
+delivery according to message attributes and the application logic.
+For example, you may want to block delivery if the recipient list contains
+addresses with `@example.com` domains. Here is how:
+
+First create a Ruby class with a class method: `delivering_email`.
+This method must return `true` if the message should be delivered, or `false` otherwise.
+The only parameter to this method is the `message` Hash object which contains
+the raw API call to Amazon SES. You can log this parameter to describe its schema.
+
+```ruby
+# lib/my_interceptor.rb
+class MyInterceptor
+  def self.delivering_email(message)
+    message[:destination][:to_addresses].any? { |email|
+      email.include?('@example.com')
+    }
+  end
+end
+```
+
+Next, you register this interceptor before sending the email. If it is a Rails
+application, you can do this in either `application.rb` or a new initializer.
+
+```ruby
+# config/application.rb
+...
+require 'my_interceptor.rb'
+AmazonSesMailer::Base.register_interceptor(MyInterceptor)
+...
+```
+
+You can register any number of interceptors, and they all have to return `true`
+for the message to be delivered.
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.

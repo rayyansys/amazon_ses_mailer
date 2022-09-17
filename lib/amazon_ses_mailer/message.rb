@@ -10,15 +10,16 @@ module AmazonSesMailer
       self.class.ses_client ||= ::Aws::SESV2::Client.new
     end
 
-    def initialize(options, delivery_proc)
+    def initialize(options, interceptors, delivery_proc)
       @message = build_message(options)
+      @interceptors = interceptors ||= []
       @delivery_proc = delivery_proc || Proc.new { |message|
         ses_client.send_email(message)
       }
     end
 
     def deliver
-      @delivery_proc.call(@message)
+      @delivery_proc.call(@message) if delivering?(@message)
     end
 
     private
@@ -58,6 +59,12 @@ module AmazonSesMailer
           topic_name: options[:topic_name] # nil is allowed
         }
       end
+    end
+
+    def delivering?(message)
+      @interceptors.all?{ |interceptor|
+        interceptor.delivering_email(message)
+      }
     end
   end
 end
