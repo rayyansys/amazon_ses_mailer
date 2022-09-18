@@ -1,3 +1,5 @@
+require "./lib/core_extensions/hash.rb"
+
 module AmazonSesMailer
   class Base
     attr_reader :template_name
