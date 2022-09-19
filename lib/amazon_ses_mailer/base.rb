@@ -6,7 +6,7 @@ module AmazonSesMailer
 
     class << self
       attr_accessor :default_options, :delivery_method
-      
+
       def deliveries
         @@_deliveries ||= []
       end
@@ -59,9 +59,9 @@ module AmazonSesMailer
     end
 
     def convert_instance_variables_to_merge_vars
-      self.instance_variable_names.reduce({}) do |result, variable_name|
+      instance_variable_names.reduce({}) do |result, variable_name|
         key = variable_name.delete "@"
-        value = self.instance_variable_get(variable_name)
+        value = instance_variable_get(variable_name)
         result.merge!(key => value)
       end
     end
@@ -69,17 +69,21 @@ module AmazonSesMailer
     def transform_hash(hash)
       hash.transform_values{ |value| transform_value(value) }
     end
-    
+
     def transform_array(arr)
       arr.map{|value| transform_value(value)}
     end
-    
+
     def transform_value(value)
       # recurse on hashes/arrays, converts nil/false values to empty strings, and converts all others to strings
       return '' unless !!value
       return transform_hash(value) if value.is_a?(Hash)
       return transform_array(value) if value.is_a?(Array)
       return value.to_s
+    end
+
+    def instance_variable_names
+      instance_variables.map(&:to_s)
     end
   end
 end
