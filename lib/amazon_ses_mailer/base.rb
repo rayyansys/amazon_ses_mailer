@@ -3,7 +3,7 @@ module AmazonSesMailer
     attr_reader :template_name
 
     class << self
-      attr_accessor :default_options, :delivery_method
+      attr_accessor :delivery_method
       
       def deliveries
         @@_deliveries ||= []
@@ -26,7 +26,7 @@ module AmazonSesMailer
     end
 
     def default_options
-      (self.class.default_options || {}).merge({template: @template_name})
+      (self.class.instance_variable_get(:@default_options) || {}).merge({template: @template_name})
     end
 
     def initialize(template_name)
