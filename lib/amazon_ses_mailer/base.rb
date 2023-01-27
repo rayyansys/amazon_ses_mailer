@@ -59,7 +59,7 @@ module AmazonSesMailer
     def convert_instance_variables_to_merge_vars
       self.instance_variable_names.reduce({}) do |result, variable_name|
         key = variable_name.delete "@"
-        value = self.instance_variable_get(variable_name)
+        value = instance_variable_get(variable_name)
         result.merge!(key => value)
       end
     end
@@ -78,6 +78,10 @@ module AmazonSesMailer
       return transform_hash(value) if value.is_a?(Hash)
       return transform_array(value) if value.is_a?(Array)
       return value.to_s
+    end
+
+    def instance_variable_names
+      instance_variables.map(&:to_s)
     end
   end
 end

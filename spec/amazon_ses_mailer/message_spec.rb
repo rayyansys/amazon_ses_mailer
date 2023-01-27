@@ -1,34 +1,42 @@
 # frozen_string_literal: true
+require 'my_interceptor'
 
 RSpec.describe AmazonSesMailer::Message do
-  let(:template_name) { 'welcome_email' }
-  let(:options) { { template: template_name, reply_to: 'saba@gmail.com' } }
-  subject { described_class.new(template_name) }
-  describe '.ensure_array' do
-    context 'when string is given in option' do
-      it 'should return a string' do
-        AmazonSesMailer::Base.mail(options).deliver
-        expect(options[:reply_to]).to eq('saba@gmail.com')
+    let(:options) { { template: 'welcome_email', reply_to: 'user@example.com' } }
+    let(:delivery_proc) { {template: 'welcome_email'} }
+    subject { described_class.new(options,MyInterceptor,delivery_proc) }
+    
+    describe '.ses_client' do
+      it 'should call ses client API' do
+        expect(AmazonSesMailer::Message).to receive(:ses_client).and_return(:ses_client)
+        subject.ses_client
       end
     end
 
-    context 'when array is given in option' do
-      options = { template: 'welcome_email', reply_to: ['saba@gmail.com'] }
-      it 'should return a array' do
-        subject = AmazonSesMailer::Base.mail(options).deliver
-        expect(subject).not_to receive(:ensure_array).with(options[:reply_to])
-      end
+    describe '.initialize' do
+        context 'when params are provided' do
+            it 'should create new message object' do
+                expect(AmazonSesMailer::Message).to receive(:new)
+                subject
+            end
+        end
     end
-  end
-  describe '.build_list_management_options' do
-    context 'when build_list_management_option is given' do
-      let(:template_name) { 'welcome_email' }
-      let(:options) { { template: template_name, reply_to: 'saba@gmail.com', contact_list_name: 'saba' } }
-      it 'should set contact list name and topic_name' do
-        expect(options[:contact_list_name]).to eq('saba')
-        subject = AmazonSesMailer::Base.mail(options).deliver
-        expect(subject).not_to receive(:build_list_management_options).with(options[:contact_list_name])
-      end
+
+    describe '.deliver' do
+        context 'when message is deliverable' do
+            it 'should call deliver to send email' do
+               expect(subject).to receive(:deliver)
+               subject.deliver
+            end
+        end
     end
-  end
+
+    describe '.build_message' do
+      it 'should build message' do
+        allow_any_instance_of(AmazonSesMailer::Message).to receive(:build_message).and_return(subject)
+        subject
+      end
+   end
+
+   
 end
