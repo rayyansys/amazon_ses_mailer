@@ -46,6 +46,60 @@ RSpec.describe AmazonSesMailer::Base do
         end
       end
     end
+
+    context 'when value is array' do
+      let(:values) { { key: [nil, string_value] } }
+
+      it { expect(service.send(:transform_hash, values)).to eq({ key:  ['', string_value] } ) }
+    end
+  end
+
+  describe '#transform_array' do
+    context 'when array element is nil' do
+      it { expect(service.send(:transform_array, [nil])).to eq(['']) }
+    end
+
+    context 'when array element is hash' do
+      let(:values) { [{ key: string_value }] }
+
+      it { expect(service.send(:transform_array, values)).to eq([{ key: string_value }]) }
+    end
+
+    context 'when array element is array' do
+      let(:values) { [[string_value]] }
+
+      it { expect(service.send(:transform_value, values)).to eq([[string_value]]) }
+    end
+
+    context 'when array element is string' do
+      it { expect(service.send(:transform_value, [string_value])).to eq([string_value]) }
+    end
+
+    context 'when array element is mixed' do
+      it { expect(service.send(:transform_value, [nil, { key:  string_value }, [string_value], string_value])).to eq(['', { key:  string_value }, [string_value], string_value]) }
+    end
+  end
+
+  describe '#transform_value' do
+    context 'when value is nil' do
+      it { expect(service.send(:transform_value, nil)).to eq('') }
+    end
+
+    context 'when value is hash' do
+      let(:values) { { key: string_value } }
+
+      it { expect(service.send(:transform_value, values)).to eq({ key: string_value }) }
+    end
+
+    context 'when value is array' do
+      let(:values) { [string_value] }
+
+      it { expect(service.send(:transform_value, values)).to eq([string_value]) }
+    end
+
+    context 'when value is string' do
+      it { expect(service.send(:transform_value, string_value)).to eq(string_value) }
+    end
   end
 
   describe '#process_merge_vars' do
