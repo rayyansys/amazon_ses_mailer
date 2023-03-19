@@ -24,26 +24,20 @@ RSpec.describe AmazonSesMailer::Message do
   end
 
   context '.initialize' do
-    it 'should fill message info' do
-      expect(message.message).to eq({ from_email_address: ' <>',
-                                      destination:        {
-                                        to_addresses: []
-                                      },
-                                      reply_to_addresses: [],
-                                      content:            {
-                                        template: {
-                                          template_name: nil,
-                                          template_data: nil
-                                        }
-                                      } })
-    end
-
     it 'should fill interceptors' do
       expect(message.instance_variable_get(:@interceptors)).to eq([interceptor])
     end
 
-    it 'should fill delivery_proc' do
-      expect(message.instance_variable_get(:@delivery_proc).class).not_to be_nil
+    context 'delivery_proc' do
+      context 'when delivery_proc present' do
+        let(:delivery_proc) { double }
+
+        it { expect(message.instance_variable_get(:@delivery_proc)).to eq(delivery_proc) }
+      end
+
+      context 'when delivery_proc not present' do
+        it { expect(message.instance_variable_get(:@delivery_proc).class).to eq(Proc) }
+      end
     end
   end
 
@@ -60,12 +54,18 @@ RSpec.describe AmazonSesMailer::Message do
     end
 
     context 'when interceptor allow delivering_email' do
-      let(:result) { message.deliver }
+      let(:ses_client) { instance_double(Aws::SESV2::Client) }
 
-      before { allow(interceptor).to receive(:delivering_email).and_return(true) }
+      before do
+        described_class.ses_client = nil
+        allow(Aws::SESV2::Client).to receive(:new).and_return(ses_client)
+        allow(ses_client).to         receive(:send_email).and_return(true)
+        allow(interceptor).to        receive(:delivering_email).and_return(true)
+        message.deliver
+      end
 
-      it 'should send email using aws ses and return response' do
-        expect(result.class).to eq(Seahorse::Client::Response)
+      it 'should send email using aws ses client' do
+        expect(ses_client).to have_received(:send_email)
       end
     end
   end
@@ -110,6 +110,24 @@ RSpec.describe AmazonSesMailer::Message do
                                                                                        contact_list_name: options_with_contact_list_name[:contact_list_name],
                                                                                        topic_name:        options_with_contact_list_name[:topic_name]
                                                                                      } })
+      end
+    end
+
+    context 'when one of params not sent like: configuration_set_name' do
+      let(:options) { { from_name: Faker::Name.name, from_email: Faker::Internet.safe_email, to: Faker::Internet.safe_email, reply_to: Faker::Internet.safe_email, template: Faker::Lorem.paragraph, merge_vars: { template: Faker::Lorem.paragraph }.to_json, configuration_set_name: nil } }
+
+      it 'should fill info without contact_list_name and configuration_set_name' do
+        expect(message.send(:build_message, options)).to eq({ from_email_address: "#{options[:from_name]} <#{options[:from_email]}>",
+                                                              destination:        {
+                                                                to_addresses: [options[:to]]
+                                                              },
+                                                              reply_to_addresses: [options[:reply_to]],
+                                                              content:            {
+                                                                template: {
+                                                                  template_name: options[:template],
+                                                                  template_data: options[:merge_vars]
+                                                                }
+                                                              } })
       end
     end
   end
@@ -159,16 +177,50 @@ RSpec.describe AmazonSesMailer::Message do
   end
 
   context '#delivering?' do
-    context 'when interceptor not allow delivering_email' do
-      before { allow(interceptor).to receive(:delivering_email).and_return(false) }
+    context 'single interceptor' do
+      context 'when interceptor not allow delivering_email' do
+        before { allow(interceptor).to receive(:delivering_email).and_return(false) }
 
-      it { expect(message.send(:delivering?, message.message)).to be_falsey }
+        it { expect(message.send(:delivering?, message.message)).to be_falsey }
+      end
+
+      context 'when interceptor allow delivering_email' do
+        before { allow(interceptor).to receive(:delivering_email).and_return(true) }
+
+        it { expect(message.send(:delivering?, message.message)).to be_truthy }
+      end
     end
 
-    context 'when interceptor allow delivering_email' do
-      before { allow(interceptor).to receive(:delivering_email).and_return(true) }
+    context 'multi interceptors' do
+      let(:second_interceptor) { double }
+      let(:message)            { described_class.new({}, [interceptor, second_interceptor], delivery_proc) }
 
-      it { expect(message.send(:delivering?, message.message)).to be_truthy }
+      context 'when first interceptor not allow delivering_email and second one allow' do
+        before do
+          allow(interceptor).to receive(:delivering_email).and_return(false)
+          allow(second_interceptor).to receive(:delivering_email).and_return(true)
+        end
+
+        it { expect(message.send(:delivering?, message.message)).to be_falsey }
+      end
+
+      context 'when second interceptor not allow delivering_email and first one allow' do
+        before do
+          allow(interceptor).to receive(:delivering_email).and_return(true)
+          allow(second_interceptor).to receive(:delivering_email).and_return(false)
+        end
+
+        it { expect(message.send(:delivering?, message.message)).to be_falsey }
+      end
+
+      context 'when all interceptors allow delivering_email' do
+        before do
+          allow(interceptor).to receive(:delivering_email).and_return(true)
+          allow(second_interceptor).to receive(:delivering_email).and_return(true)
+        end
+
+        it { expect(message.send(:delivering?, message.message)).to be_truthy }
+      end
     end
   end
 end

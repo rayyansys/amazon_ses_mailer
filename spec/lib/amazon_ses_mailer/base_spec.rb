@@ -113,10 +113,24 @@ RSpec.describe AmazonSesMailer::Base do
     end
 
     context 'when merge_vars empty' do
-      let(:result) { { template_name: template_name }.to_json }
+      context 'without custom instance variables' do
+        let(:result) { { template_name: template_name, from_email: Faker::Internet.safe_email } }
 
-      it 'should return instance variable values' do
-        expect(service.send(:process_merge_vars, nil)).to eq(result)
+        before { allow_any_instance_of(described_class).to receive(:convert_instance_variables_to_merge_vars).and_return(result) }
+
+        it 'should return instance variable values' do
+          expect(service.send(:process_merge_vars, nil)).to eq(result.to_json)
+        end
+      end
+
+      context 'with custom instance variables' do
+        let(:result) { { template_name: template_name, from_email: Faker::Internet.safe_email } }
+
+        before { service.instance_variable_set(:@from_email, result[:from_email]) }
+
+        it 'should return instance variable values' do
+          expect(service.send(:process_merge_vars, nil)).to eq(result.to_json)
+        end
       end
     end
   end
@@ -147,26 +161,46 @@ RSpec.describe AmazonSesMailer::Base do
       expect(message.class).to eq(AmazonSesMailer::Message)
     end
 
-    it 'should return message with options' do
-      expect(message.message[:destination][:to_addresses]).to         eq([email])
-      expect(message.message[:content][:template][:template_name]).to eq(template_name)
-      expect(message.message[:content][:template][:template_data]).to eq({ template_name: template_name }.to_json)
+    context 'with test delivery method' do
+      before do
+        AmazonSesMailer::Base.delivery_method = :test
+        allow_any_instance_of(AmazonSesMailer::Message).to receive(:delivering?).and_return(true)
+      end
+
+      after { AmazonSesMailer::Base.delivery_method = :smtp }
+
+      it "sends an email with delivery_proc" do
+        expect { service.send(:mail, options).deliver }.to change { service.class.deliveries.count }.by(1)
+      end
     end
   end
 
   describe '#deliveries' do
     let(:options) { { to: email } }
 
-    before do
-      allow(AmazonSesMailer::Base).to receive(:delivery_method).and_return(:test)
-      allow_any_instance_of(AmazonSesMailer::Message).to receive(:delivering?).and_return(true)
-      service.send(:mail, options).deliver
+    before { allow_any_instance_of(AmazonSesMailer::Message).to receive(:delivering?).and_return(true) }
+
+    context 'when AmazonSesMailer::Base delivery_method: test' do
+      before { allow(AmazonSesMailer::Base).to receive(:delivery_method).and_return(:test) }
+
+      it { expect { service.send(:mail, options).deliver }.to change { service.class.deliveries.count }.by(1) }
     end
 
-    it 'should set delivered message info inside deliveries' do
-      expect(described_class.deliveries.first[:destination][:to_addresses]).to         eq([email])
-      expect(described_class.deliveries.first[:content][:template][:template_name]).to eq(template_name)
-      expect(described_class.deliveries.first[:content][:template][:template_data]).to eq({ template_name: template_name }.to_json)
+    context 'when AmazonSesMailer::Base delivery_method: not test' do
+      before do
+        allow(AmazonSesMailer::Base).to receive(:delivery_method).and_return(:smtp)
+        service.send(:mail, options).deliver
+      end
+
+      it { expect { service.send(:mail, options).deliver }.to change { service.class.deliveries.count }.by(0) }
+    end
+  end
+
+  describe '#convert_instance_variables_to_merge_vars' do
+    before { service.instance_variable_set(:@from_email, email) }
+
+    it 'should return all instance variables with values as hash' do
+      expect(service.send(:convert_instance_variables_to_merge_vars).deep_symbolize_keys).to eq({ template_name: template_name, from_email: email })
     end
   end
 end
