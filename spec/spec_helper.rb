@@ -1,5 +1,6 @@
 require "bundler/setup"
 require "amazon_ses_mailer"
+require 'aws-sdk-sesv2'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
@@ -11,4 +12,11 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  # When you enable response stubbing, the client will generate fake responses and will not make any HTTP requests.
+  # As mentioned in this document https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/ClientStubs.html
+  config.before do
+    Aws.config.update(stub_responses: true)
+  end
+
 end
