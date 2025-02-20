@@ -81,9 +81,9 @@ module AmazonSesMailer
     end
 
     def sanitize(str)
-      escape_table = { "'" => '&#39;', '&' => '&amp;', '"' => '&quot;', '<' => '&lt;', '>' => '&gt;', }
+      @escape_table ||= { "'" => '&#39;', '&' => '&amp;', '"' => '&quot;', '<' => '&lt;', '>' => '&gt;', }
 
-      str.gsub(/['&\"<>]/, escape_table)
+      str.gsub(/['&\"<>]/, @escape_table)
     end
   end
 end
