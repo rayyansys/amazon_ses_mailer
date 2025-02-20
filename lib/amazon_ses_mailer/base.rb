@@ -77,7 +77,13 @@ module AmazonSesMailer
       return '' unless !!value
       return transform_hash(value) if value.is_a?(Hash)
       return transform_array(value) if value.is_a?(Array)
-      return value.to_s
+      return sanitize(value.to_s)
+    end
+
+    def sanitize(str)
+      @escape_table ||= { "'" => '&#39;', '&' => '&amp;', '"' => '&quot;', '<' => '&lt;', '>' => '&gt;', }
+
+      str.gsub(/['&\"<>]/, @escape_table)
     end
   end
 end
