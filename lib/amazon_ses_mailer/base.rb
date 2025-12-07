@@ -34,9 +34,9 @@ module AmazonSesMailer
       @@__interceptors ||= []
     end
 
-    def self.method_missing(method_name, *args, &block)
+    def self.method_missing(method_name, *args, **kwargs, &block)
       template_name = [self.name, method_name].join('-')
-      new(template_name).send(method_name, *args, &block)
+      new(template_name).send(method_name, *args, **kwargs, &block)
     end
 
     def mail(options)
